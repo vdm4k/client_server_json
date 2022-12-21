@@ -23,6 +23,7 @@ class tcp_stream : public stream {
   void set_received_data_cb(received_data_t cb, std::any user_data) override;
   void set_send_data_cb(send_data_t cb, std::any user_data) override;
   void set_state_changed_cb(state_changed_t cb, std::any user_data) override;
+  std::string const& get_error() const override;
 
   bool connect_to_server(std::string const& peer_addr, uint16_t peer_port,
                          struct ev_loop* loop);

@@ -1,6 +1,6 @@
 #include <client/client.h>
 #include <client/connection.h>
-#include <server/json_parser.h>
+#include <json/json_parser.h>
 
 #include <cstring>
 #include <iostream>

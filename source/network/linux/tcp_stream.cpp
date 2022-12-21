@@ -8,18 +8,18 @@
 namespace lin {
 
 void receive_data_cb(struct ev_loop *, ev_io *w, int) {
-  auto *conn = reinterpret_cast<tcp_stream *>(w->data);
-  conn->receive_data();
+  auto *strm = reinterpret_cast<tcp_stream *>(w->data);
+  strm->receive_data();
 }
 
 void send_data_cb(struct ev_loop *, ev_io *w, int) {
-  auto *conn = reinterpret_cast<tcp_stream *>(w->data);
-  conn->send_data();
+  auto *strm = reinterpret_cast<tcp_stream *>(w->data);
+  strm->send_data();
 }
 
 void connection_established_cb(struct ev_loop *, ev_io *w, int) {
-  auto *tr = reinterpret_cast<tcp_stream *>(w->data);
-  tr->connection_established();
+  auto *strm = reinterpret_cast<tcp_stream *>(w->data);
+  strm->connection_established();
 }
 
 void incoming_connection_cb(struct ev_loop * /*loop*/, ev_io *w,
@@ -242,6 +242,8 @@ void tcp_stream::set_state_changed_cb(state_changed_t cb, std::any user_data) {
   _state_changed_user_data = user_data;
 }
 
+std::string const &tcp_stream::get_error() const { return _detailed_error; }
+
 void tcp_stream::receive_data() {
   if (_received_data) _received_data(this, _received_user_data);
 }
@@ -318,7 +320,7 @@ void tcp_stream::handle_incoming_connection(int file_descr,
 
 void tcp_stream::set_connection_state(state new_state) {
   _state = new_state;
-  // if (_state_changed) _state_changed(this, _state_changed_user_data);
+  if (_state_changed) _state_changed(this, _state_changed_user_data);
 }
 
 void tcp_stream::set_detailed_error(const std::string &str) {

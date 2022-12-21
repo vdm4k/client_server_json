@@ -17,11 +17,10 @@ class connection {
   virtual void parse_json(std::byte *msg_begin, uint32_t msg_size) = 0;
   virtual void state_change() = 0;
 
-  stream::state get_state() const;
-
  protected:
   void send_data(std::byte *data, uint32_t data_size);
   void send_message(std::string const &msg);
+  stream::state get_state() const;
 
  private:
   void receive_data();

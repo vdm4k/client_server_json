@@ -34,12 +34,12 @@ int main(int argc, char** argv) {
 
   std::vector<std::unique_ptr<client::client>> clients;
   for (size_t i = 0; i < threads; ++i) {
-    auto clnt = std::make_unique<client::client>();
-    if (!clnt->start(std::make_unique<lin::ev_stream_manager>(), server_addr,
-                     server_port, total_request_per_thread)) {
+    auto client = std::make_unique<client::client>();
+    if (!client->start(std::make_unique<lin::ev_stream_manager>(), server_addr,
+                       server_port, total_request_per_thread)) {
       std::cerr << "couldn't create send stream" << std::endl;
     } else {
-      clients.push_back(std::move(clnt));
+      clients.push_back(std::move(client));
     }
   }
 

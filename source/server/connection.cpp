@@ -1,5 +1,5 @@
+#include <json/json_parser.h>
 #include <server/connection.h>
-#include <server/json_parser.h>
 #include <server/server.h>
 
 #include <cstring>
@@ -36,6 +36,7 @@ void connection::parse_json(std::byte *msg_begin, uint32_t msg_size) {
   json_parser req_parser;
   json_parser resp_generator;
   auto parse_res = req_parser.parse_request(msg_begin, msg_size);
+  _server->inc_processed_messages();
   if (parse_res) {
     switch (parse_res->_type) {
       case json_parser::request_message_type::e_get: {
@@ -54,7 +55,7 @@ void connection::parse_json(std::byte *msg_begin, uint32_t msg_size) {
       }
       case json_parser::request_message_type::e_set: {
         if (_dictionary->set(parse_res->_key, parse_res->_value)) {
-          auto json = resp_generator.generate_success_set_response();
+          auto json = resp_generator.generate_set_success_response();
           send_data((std::byte *)json.data(), json.size());
         } else {
           auto json = resp_generator.generate_error_response(

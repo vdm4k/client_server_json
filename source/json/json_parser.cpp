@@ -1,6 +1,6 @@
+#include <json/json_parser.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/writer.h>
-#include <server/json_parser.h>
 
 #include <set>
 
@@ -20,11 +20,10 @@ static char const* const s_key_type = "key";
 static char const* const s_value_type = "value";
 static char const* const s_cause = "cause";
 
-static std::set<std::string> s_responses{s_result, s_value_type, s_success_set,
-                                         s_failed_set, s_total_set};
+std::set<std::string> s_responses{s_result,      s_cause,      s_value_type,
+                                  s_success_set, s_failed_set, s_total_set};
 
-static std::set<std::string> s_requests{s_request_type, s_key_type,
-                                        s_value_type};
+std::set<std::string> s_requests{s_request_type, s_key_type, s_value_type};
 
 void writeDocumentToString(const rapidjson::Document& document,
                            std::string& output) {
@@ -54,7 +53,7 @@ std::optional<json_parser::parse_request_result> json_parser::parse_request(
     return {};
   }
 
-  request_message_type mes_type{request_message_type::e_none};
+  request_message_type msg_type{request_message_type::e_none};
   char const* key = nullptr;
   char const* value = nullptr;
   for (auto it = _document.MemberBegin(); it != _document.MemberEnd(); ++it) {
@@ -64,11 +63,11 @@ std::optional<json_parser::parse_request_result> json_parser::parse_request(
     }
     if (it->name == s_request_type) {
       if (it->value == s_request_set_type) {
-        mes_type = request_message_type::e_set;
+        msg_type = request_message_type::e_set;
       } else if (it->value == s_request_get_type) {
-        mes_type = request_message_type::e_get;
+        msg_type = request_message_type::e_get;
       } else if (it->value == s_request_stat_type) {
-        mes_type = request_message_type::e_stat;
+        msg_type = request_message_type::e_stat;
       } else {
         _error = std::string("unsupported operation type - ") +
                  it->value.GetString();
@@ -81,7 +80,7 @@ std::optional<json_parser::parse_request_result> json_parser::parse_request(
     }
   }
 
-  switch (mes_type) {
+  switch (msg_type) {
     case request_message_type::e_get: {
       if (!key) {
         _error = std::string("key must be set in get operation");
@@ -109,7 +108,7 @@ std::optional<json_parser::parse_request_result> json_parser::parse_request(
     }
   }
 
-  return json_parser::parse_request_result{mes_type, key, value};
+  return json_parser::parse_request_result{msg_type, key, value};
 }
 
 std::optional<json_parser::parse_response_result> json_parser::parse_response(
@@ -120,7 +119,7 @@ std::optional<json_parser::parse_response_result> json_parser::parse_response(
     return {};
   }
 
-  response_message_type mes_type{response_message_type::e_none};
+  response_message_type msg_type{response_message_type::e_none};
   char const* value = nullptr;
   uint32_t success_set = 0;
   uint32_t failed_set = 0;
@@ -132,37 +131,37 @@ std::optional<json_parser::parse_response_result> json_parser::parse_response(
     }
     if (it->name == s_result) {
       if (it->value == s_success) {
-        mes_type = response_message_type::e_success;
+        msg_type = response_message_type::e_success;
       } else {
-        mes_type = response_message_type::e_failed;
+        msg_type = response_message_type::e_failed;
       }
     } else if (it->name == s_cause) {
       value = it->value.GetString();
     } else if (it->name == s_value_type) {
       value = it->value.GetString();
     } else if (it->name == s_success_set) {
-      success_set = it->value.GetInt();
+      success_set = it->value.GetUint64();
     } else if (it->name == s_failed_set) {
-      failed_set = it->value.GetInt();
+      failed_set = it->value.GetUint64();
     } else if (it->name == s_total_set) {
-      total_set = it->value.GetInt();
+      total_set = it->value.GetUint64();
     }
   }
 
-  return json_parser::parse_response_result{mes_type, value, success_set,
+  return json_parser::parse_response_result{msg_type, value, success_set,
                                             failed_set, total_set};
 }
 
 std::string json_parser::generate_stat_response(uint64_t success,
-                                                uint64_t failed) {
+                                                uint64_t failed) const {
   rapidjson::Document stat_doc;
 
   rapidjson::Value success_val;
-  success_val.SetInt64(success);
+  success_val.SetUint64(success);
   rapidjson::Value failed_val;
-  failed_val.SetInt64(failed);
+  failed_val.SetUint64(failed);
   rapidjson::Value total_val;
-  total_val.SetInt64(failed + success);
+  total_val.SetUint64(failed + success);
   rapidjson::Value result_val;
   result_val.SetString(s_success, stat_doc.GetAllocator());
 
@@ -181,23 +180,23 @@ std::string json_parser::generate_stat_response(uint64_t success,
   return json_body;
 }
 
-std::string json_parser::generate_stat_request() {
-  rapidjson::Document req_doc;
+std::string json_parser::generate_stat_request() const {
+  rapidjson::Document stat_doc;
 
   rapidjson::Value req_type;
-  req_type.SetString(s_request_stat_type, req_doc.GetAllocator());
+  req_type.SetString(s_request_stat_type, stat_doc.GetAllocator());
 
-  req_doc.SetObject();
-  req_doc.AddMember(rapidjson::StringRef(s_request_type), req_type,
-                    req_doc.GetAllocator());
+  stat_doc.SetObject();
+  stat_doc.AddMember(rapidjson::StringRef(s_request_type), req_type,
+                     stat_doc.GetAllocator());
 
   std::string json_body;
-  writeDocumentToString(req_doc, json_body);
+  writeDocumentToString(stat_doc, json_body);
   return json_body;
 }
 
 std::string json_parser::generate_set_request(std::string const& key,
-                                              std::string const& value) {
+                                              std::string const& value) const {
   rapidjson::Document set_req_doc;
 
   rapidjson::Value req_type;
@@ -220,7 +219,7 @@ std::string json_parser::generate_set_request(std::string const& key,
   return json_body;
 }
 
-std::string json_parser::generate_get_request(std::string const& key) {
+std::string json_parser::generate_get_request(std::string const& key) const {
   rapidjson::Document get_req_doc;
 
   rapidjson::Value req_type;
@@ -239,7 +238,8 @@ std::string json_parser::generate_get_request(std::string const& key) {
   return json_body;
 }
 
-std::string json_parser::generate_error_response(std::string const& cause) {
+std::string json_parser::generate_error_response(
+    std::string const& cause) const {
   rapidjson::Document error_doc;
 
   rapidjson::Value cause_val;
@@ -257,7 +257,7 @@ std::string json_parser::generate_error_response(std::string const& cause) {
   return json_body;
 }
 
-std::string json_parser::generate_success_set_response() {
+std::string json_parser::generate_set_success_response() const {
   rapidjson::Document set_resp_doc;
 
   rapidjson::Value result_val;
@@ -271,7 +271,7 @@ std::string json_parser::generate_success_set_response() {
   return json_body;
 }
 
-std::string json_parser::generate_get_response(std::string const& value) {
+std::string json_parser::generate_get_response(std::string const& value) const {
   rapidjson::Document get_resp_doc;
 
   rapidjson::Value result_val;

@@ -1,10 +1,14 @@
 #include <server/server.h>
 
+#include <iostream>
+
+extern bool print_log;
+
 namespace server {
 
 void add_connection_cd(stream_ptr &&ptr, std::any user_data) {
-  auto *gr = std::any_cast<server *>(user_data);
-  gr->add_connection(std::move(ptr));
+  auto *srv = std::any_cast<server *>(user_data);
+  srv->add_connection(std::move(ptr));
 }
 
 bool server::start(stream_manager_ptr &&manager, std::string const &addr,
@@ -48,9 +52,16 @@ bool server::handle_connections() {
 
 dictionary server::get_dictionary() const { return _dictionary; }
 
-void server::add_connection(stream_ptr &&ptr) {
-  auto conn = std::make_unique<connection>(std::move(ptr), &_dictionary, this);
-  _connections.insert({conn.get(), std::move(conn)});
+void server::add_connection(stream_ptr &&strm) {
+  if (stream::state::e_established == strm->get_state()) {
+    auto conn =
+        std::make_unique<connection>(std::move(strm), &_dictionary, this);
+    _connections.insert({conn.get(), std::move(conn)});
+  } else {
+    if (print_log)
+      std::cerr << "incomming connection failed - " << strm->get_error()
+                << std::endl;
+  }
 }
 
 }  // namespace server

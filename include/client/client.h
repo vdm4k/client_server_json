@@ -20,6 +20,7 @@ class client {
   void stop();
   bool is_active() const noexcept;
   void inc_transactions();
+  size_t get_transactions() const noexcept;
 
  private:
   void serve();

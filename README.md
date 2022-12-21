@@ -14,3 +14,6 @@
 Server and client have help 
 ./remote_dictionary_client -h
 ./remote_dictionary_server -h
+
+Graceful shutdown
+Ctrl + \

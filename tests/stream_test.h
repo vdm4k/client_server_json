@@ -27,16 +27,6 @@ class test_stream : public stream {
     return data_size;
   }
 
-  void wait_sended_data(std::vector<std::byte>& send) {
-    std::unique_lock lk(m);
-    _cv.wait(lk, [this] { return _ready; });
-    _ready = false;
-    send = _send;
-    _send.clear();
-    lk.unlock();
-    _cv.notify_one();
-  }
-
   ssize_t get_data(std::byte* buffer, size_t /*buffer_size*/) override {
     if (_receive.empty()) return 0;
     if (_parts == 1) {
@@ -51,19 +41,6 @@ class test_stream : public stream {
                                       _receive.data() + _receive.size());
     --_parts;
     return part_size;
-  }
-
-  void set_receive_data(std::string const& data, size_t part = 1,
-                        size_t times = 1) {
-    uint32_t total_size = 4 + data.size();
-    std::byte message[total_size];
-    memcpy(message + 4, data.data(), data.size());
-    uint32_t data_size = __builtin_bswap32(data.size());
-    memcpy(message, &data_size, 4);
-    for (size_t i = 0; i < times; ++i)
-      _receive.insert(_receive.end(), message, message + total_size);
-    _parts = part;
-    _data_received = true;
   }
 
   state get_state() const override { return _state; }
@@ -83,6 +60,31 @@ class test_stream : public stream {
     _state_changed_user_data = user_data;
   }
 
+  std::string const& get_error() const override { return _error; }
+
+  void wait_sended_data(std::vector<std::byte>& send) {
+    std::unique_lock lk(m);
+    _cv.wait(lk, [this] { return _ready; });
+    _ready = false;
+    send = _send;
+    _send.clear();
+    lk.unlock();
+    _cv.notify_one();
+  }
+
+  void set_receive_data(std::string const& data, size_t part = 1,
+                        size_t times = 1) {
+    uint32_t total_size = 4 + data.size();
+    std::byte message[total_size];
+    memcpy(message + 4, data.data(), data.size());
+    uint32_t data_size = __builtin_bswap32(data.size());
+    memcpy(message, &data_size, 4);
+    for (size_t i = 0; i < times; ++i)
+      _receive.insert(_receive.end(), message, message + total_size);
+    _parts = part;
+    _data_received = true;
+  }
+
   void process() {
     if (_data_received) {
       _received_data(this, _received_user_data);
@@ -91,6 +93,7 @@ class test_stream : public stream {
 
   bool _ready = false;
   std::mutex m;
+  std::string _error;
   std::condition_variable _cv;
   size_t _parts = 0;
   bool _send_failed = false;

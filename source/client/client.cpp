@@ -25,6 +25,8 @@ bool client::is_active() const noexcept {
 
 void client::inc_transactions() { ++_transactions; }
 
+size_t client::get_transactions() const noexcept { return _transactions; }
+
 void client::serve() {
   while (is_active() && _transactions < _max_transactions) {
     _stream_manager->proceed();

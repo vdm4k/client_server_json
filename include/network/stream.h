@@ -21,6 +21,7 @@ class stream {
   virtual void set_received_data_cb(received_data_t cb, std::any user_data) = 0;
   virtual void set_send_data_cb(send_data_t cb, std::any user_data) = 0;
   virtual void set_state_changed_cb(state_changed_t cb, std::any user_data) = 0;
+  virtual std::string const &get_error() const = 0;
 };
 
 using stream_ptr = std::unique_ptr<stream>;
