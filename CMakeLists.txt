@@ -59,6 +59,9 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif(BUILD_TESTS)
 
+target_link_libraries(${PROJECT_NAME}_server_objects ev::ev)
+target_link_libraries(${PROJECT_NAME}_client_objects ev::ev)
+
 target_link_libraries(${PROJECT_NAME}_server Threads::Threads CLI11::CLI11 ev::ev)
 target_link_libraries(${PROJECT_NAME}_client Threads::Threads CLI11::CLI11 ev::ev)
 
